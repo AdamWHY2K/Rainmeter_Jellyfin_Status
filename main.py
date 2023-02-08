@@ -5,37 +5,42 @@ import sys
 from time import sleep
 
 class User():
-    def __init__(self, UserId, UserName, CurrentPlaying, Client, Transcoding, RuntimeTicks, PositionTicks) -> None:
+    def __init__(self, UserId, UserName, CurrentPlaying, Client, Transcoding, RuntimeTicks, PositionTicks, IsPaused, DeviceName, NumberOfSessions) -> None:
         self.id = UserId
-        self.name = UserName
-        self.playing = CurrentPlaying
-        self.client = Client
+        self.name = "<name>" + UserName + "<name>"
+        self.client = "<client>" + Client + "<client>"
+        self.device_name = "<device_name>" + DeviceName + "<device_name>"
         self.total_time = RuntimeTicks
         self.current_time = PositionTicks
-        if Transcoding == "Transcode":
-            self.transcode = "(T)"
-        else:
-            self.transcode = "(D)"
+        self.number_of_sessions = "<number_of_sessions>" + str(NumberOfSessions) + "<number_of_sessions>"
         if CurrentPlaying != None:
+            self.playing = "<playing>" + CurrentPlaying + "<playing>"
+            if Transcoding == "Transcode":
+                self.transcode = "<transcode>(T)<transcode>"
+            else:
+                self.transcode = "<transcode>(D)<transcode>"
             convert_ticks = round((self.total_time - self.current_time) * 1/10000000 / 60, 2)
             minutes = str(int(convert_ticks))
             seconds = str(int(convert_ticks % 1 * 60))
             if int(seconds) < 10:
                 seconds = "0" + seconds
-            self.minutes_left = minutes + " min, " + seconds + " sec"
-            self.alt_minutes_left = minutes + ":" + seconds
-            self.percentage_done = round((self.current_time / self.total_time) * 100, 2)
+            self.minutes_left = "<minutes_left>" + minutes + " min, " + seconds + " sec<minutes_left>"
+            self.alt_minutes_left = "<alt_minutes_left>" + minutes + ":" + seconds + "<alt_minutes_left>"
+            self.percentage_done = "<percentage_done>" + str(round((self.current_time / self.total_time) * 100, 2)) + "<percentage_done>"
+            if IsPaused:
+                self.play_status = "<play_status>[II]<play_status>"
+            else:
+                self.play_status = "<play_status>[>]<play_status>"
         else:
-            self.minutes_left = 0
-            self.percentage_done = 0
+            self.playing = "<playing>Online<playing>"
+            self.transcode = "<transcode><transcode>"
+            self.minutes_left = "<minutes_left><minutes_left>"
+            self.alt_minutes_left = "<alt_minutes_left><alt_minutes_left>"
+            self.percentage_done = "<percentage_done>0<percentage_done>"
+            self.play_status = "<play_status>[X]<play_status>"
 
-        self.badchars = ["‐", "’", "¡", "¢", "£", "¤", "¥", "¦", "§", "¨", "©", "ª", "«", "¬", "®", "¯", "°", "±", "²", "³", "´", "µ", "¶","·", "¸", "¹", "º", "»", "¼", "½", "¾", "¿", "À", "Á", "Â", "Ã", "Ä", "Å", "Æ", "Ç", "È", "É", "Ê", "Ë", "Ì", "Í", "Î", "Ï", "Ð", "Ñ", "Ò", "Ó", "Ô", "Õ", "Ö", "×", "Ø", "Ù", "Ú", "Û", "Ü", "Ý", "Þ", "ß", "à", "á", "â", "ã", "ä", "å", "æ", "ç", "è", "é", "ê", "ë", "ì", "í", "î", "ï", "ð", "ñ", "ò", "ó", "ô", "õ", "ö", "÷", "ø", "ù", "ú", "û", "ü", "ý", "þ", "ÿ", "ƒ", "Α", "Β", "Γ", "Δ", "Ε", "Ζ", "Η", "Θ", "Ι", "Κ", "Λ", "Μ", "Ν", "Ξ", "Ο", "Π", "Ρ", "Σ", "Τ", "Υ", "Φ", "Χ", "Ψ", "Ω", "α", "β", "γ", "δ", "ε", "ζ", "η", "θ", "ι", "κ", "λ", "μ", "ν", "ξ", "ο", "π", "ρ", "ς", "σ", "τ", "υ", "φ", "χ", "ψ", "ω", "ϑ", "ϒ", "ϖ", "•", "…", "′", "″", "‾", "⁄", "℘", "ℑ", "ℜ", "™", "ℵ", "←", "↑", "→", "↓", "↔", "↵", "⇐", "⇑", "⇒", "⇓", "⇔", "∀", "∂", "∃", "∅", "∇", "∈", "∉", "∋", "∏", "∑", "−", "∗", "√", "∝", "∞", "∠", "∧", "∨", "∩", "∪", "∫", "∴", "∼", "≅", "≈", "≠", "≡", "≤", "≥", "⊂", "⊃", "⊄", "⊆", "⊇", "⊕", "⊗"] 
-        #Rainmeter throws a fit when these characters are in a string... theres gotta be a better way of detecting badchars than this :/
-        self.output = "<name>" + self.name + "<name>" + "<playing>" + str(self.playing) + "<playing>" + "<client>" + self.client + "<client>" + "<transcode>" + self.transcode + "<transcode>" + "<minutes_left>" + str(self.minutes_left) + "<minutes_left>" + "<percentage_done>" + str(self.percentage_done) + "<percentage_done>" + "JFS_EOL_SIG"
-        for i in self.badchars:
-            if i in self.output:
-                self.output = self.output.replace(i, "")
-        print(self.output)
+        self.output = self.name + self.playing + self.client + self.transcode + self.minutes_left + self.alt_minutes_left + self.percentage_done + self.play_status + self.device_name + self.number_of_sessions + "JFS_EOL_SIG"
+        print(self.output.encode("ascii", errors='replace')) #Rainmeter really doesn't like chars that aren't in the basic 128 ascii range, incompatible chars will be replaced with a ?
 
 class App():
     def __init__(self, ip, api) -> None:
@@ -74,9 +79,9 @@ class App():
     def create_users(self):
         for i in self.sessions:
             try:
-                self.users[i["UserId"]] = User(i["UserId"], i["UserName"], re.split("([^\/\\\]+)$", i["NowPlayingItem"]["Path"])[1], i["Client"], i["PlayState"]["PlayMethod"], i["NowPlayingItem"]["RunTimeTicks"], i["PlayState"]["PositionTicks"])
+                self.users[i["UserId"]] = User(i["UserId"], i["UserName"], re.split("([^\/\\\]+)$", i["NowPlayingItem"]["Path"])[1], i["Client"], i["PlayState"]["PlayMethod"], i["NowPlayingItem"]["RunTimeTicks"], i["PlayState"]["PositionTicks"], i["PlayState"]["IsPaused"], i["DeviceName"],  len(self.sessions))
             except KeyError:
-                self.users[i["UserId"]] = User(i["UserId"], i["UserName"], None, i["Client"], None, None, None)
+                self.users[i["UserId"]] = User(i["UserId"], i["UserName"], None, i["Client"], None, None, None, None, i["DeviceName"], len(self.sessions))
 
 if __name__ == "__main__":
     try:
