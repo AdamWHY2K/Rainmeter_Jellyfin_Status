@@ -75,10 +75,10 @@ class App():
             except KeyError:
                 self.users[i["UserId"]] = User(i["UserId"], i["UserName"], None, i["Client"], None, None, None, None, i["DeviceName"], len(self.sessions))
 
-    def print_users(self):
+    def write_users(self):
         with open("py_out.txt", "wb") as f:
-            for i in self.users:
-                    f.write(self.users[i].output.encode("ascii", errors='replace')) #Rainmeter really doesn't like chars that aren't in the basic 128 ascii range, incompatible chars will be replaced with a ?
+            for i in dict(sorted(self.users.items())): #Sorted so it prints in a consistent order
+                f.write(self.users[i].output.encode("ascii", errors='replace')) #Rainmeter really doesn't like chars that aren't in the basic 128 ascii range, incompatible chars will be replaced with a ?
 
 if __name__ == "__main__":
     #Check for updates, doing this outside of the main program so it only checks once per load; instead of every 60 seconds.
@@ -111,7 +111,7 @@ if __name__ == "__main__":
             myApp = App(sys.argv[1], sys.argv[2])
             myApp.get_sessions()
             myApp.create_users()
-            myApp.print_users()
+            myApp.write_users()
         except IndexError:
             pass
         sleep(60)
