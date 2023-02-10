@@ -9,7 +9,7 @@ Author: AdamWHY2K
 
 ## Description
 
-todo: video
+https://user-images.githubusercontent.com/68286215/218041739-2b3a643b-c759-4f06-b267-5eef9b548472.mp4
 
 A rainmeter skin that displays the sessions your Jellyfin media server is currently operating.
 
