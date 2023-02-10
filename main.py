@@ -3,9 +3,13 @@ import requests
 import re
 import sys
 from time import sleep
+from wmi import WMI
+from pymsgbox import confirm
+import webbrowser
+
 
 class User():
-    def __init__(self, UserId, UserName, CurrentPlaying, Client, Transcoding, RuntimeTicks, PositionTicks, IsPaused, DeviceName, NumberOfSessions) -> None:
+    def __init__(self, UserId, UserName, CurrentPlaying, Client, Transcoding, RuntimeTicks, PositionTicks, IsPaused, DeviceName, NumberOfSessions):
         self.id = UserId
         self.name = "<name>" + UserName + "<name>"
         self.client = "<client>" + Client + "<client>"
@@ -40,7 +44,6 @@ class User():
             self.play_status = "<play_status>[X]<play_status>"
 
         self.output = self.name + self.playing + self.client + self.transcode + self.minutes_left + self.alt_minutes_left + self.percentage_done + self.play_status + self.device_name + self.number_of_sessions + "JFS_EOL_SIG"
-        print(self.output.encode("ascii", errors='replace')) #Rainmeter really doesn't like chars that aren't in the basic 128 ascii range, incompatible chars will be replaced with a ?
 
 class App():
     def __init__(self, ip, api) -> None:
@@ -55,17 +58,6 @@ class App():
         self.api = api
         self.sessions = []
         self.users = {}
-        JF_Status_github = requests.get("https://api.github.com/repos/AdamWHY2K/Rainmeter_Jellyfin_Stats/releases")
-        self.current_version = "1.0.0"
-        try:
-            self.latest_version = JF_Status_github.json()[0]["tag_name"][1:]
-            self.changelog = JF_Status_github.json()[0]["body"]
-            self.download_link = JF_Status_github.json()[0]["assets"][0]["browser_download_url"]
-        except KeyError:
-            logging.warning("GitHub API limit exceeded, couldn't check for updates.")
-            self.latest_version = "0"
-            self.changelog = "Not Found"
-            self.download_link = ""
 
     def connect(self):
         url = "http://" + self.ip + "/Sessions"
@@ -83,10 +75,43 @@ class App():
             except KeyError:
                 self.users[i["UserId"]] = User(i["UserId"], i["UserName"], None, i["Client"], None, None, None, None, i["DeviceName"], len(self.sessions))
 
+    def print_users(self):
+        with open("py_out.txt", "wb") as f:
+            for i in self.users:
+                    f.write(self.users[i].output.encode("ascii", errors='replace')) #Rainmeter really doesn't like chars that aren't in the basic 128 ascii range, incompatible chars will be replaced with a ?
+
 if __name__ == "__main__":
+    #Check for updates, doing this outside of the main program so it only checks once per load; instead of every 60 seconds.
+    JF_Status_github = requests.get("https://api.github.com/repos/AdamWHY2K/Rainmeter_Jellyfin_Status/releases")
+    current_version = "1.0.0"
     try:
-        myApp = App(sys.argv[1], sys.argv[2])
-        myApp.get_sessions()
-        myApp.create_users()
-    except IndexError:
-        pass
+        latest_version = JF_Status_github.json()[0]["tag_name"][1:]
+        changelog = JF_Status_github.json()[0]["body"]
+        download_link = JF_Status_github.json()[0]["assets"][0]["browser_download_url"]
+    except KeyError:
+        latest_version = "0"
+        changelog = "Unable to find changelog"
+        download_link = "https://github.com/AdamWHY2K/Rainmeter_Jellyfin_Status"
+    
+    if current_version < latest_version:
+            if confirm(
+            f"\tCurrent version: {current_version}\n\t Latest version: {latest_version}\n\n{changelog}\n\nDownload now?",
+            "Jellyfin Status - Update available",
+            buttons=["OK", "Cancel"]) == "OK":
+                webbrowser.open_new_tab(download_link) #Open download link in user's default browser
+                logging.debug("Downloading update")
+                raise SystemExit
+            else:
+                pass #Skip update this time, will ask again next time skin is refreshed or Rainmeter starts
+    else:
+        pass #User has latest version installed
+
+    while WMI().Win32_Process(name="Rainmeter.exe"): #While the Rainmeter process exists
+        try:
+            myApp = App(sys.argv[1], sys.argv[2])
+            myApp.get_sessions()
+            myApp.create_users()
+            myApp.print_users()
+        except IndexError:
+            pass
+        sleep(60)
