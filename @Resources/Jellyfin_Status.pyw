@@ -83,7 +83,7 @@ class App():
 if __name__ == "__main__":
     #Check for updates, doing this outside of the main program so it only checks once per load; instead of every 60 seconds.
     JF_Status_github = requests.get("https://api.github.com/repos/AdamWHY2K/Rainmeter_Jellyfin_Status/releases")
-    current_version = "1.0.0"
+    current_version = "1.0.1"
     try:
         latest_version = JF_Status_github.json()[0]["tag_name"][1:]
         changelog = JF_Status_github.json()[0]["body"]
@@ -114,4 +114,4 @@ if __name__ == "__main__":
             myApp.write_users()
         except IndexError:
             pass
-        sleep(60)
+        sleep(int(sys.argv[3]))
