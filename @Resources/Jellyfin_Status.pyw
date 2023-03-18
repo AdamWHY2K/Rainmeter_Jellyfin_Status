@@ -80,10 +80,10 @@ class App():
             for i in dict(sorted(self.users.items())): #Sorted so it prints in a consistent order
                 f.write(self.users[i].output.encode("ascii", errors='replace')) #Rainmeter really doesn't like chars that aren't in the basic 128 ascii range, incompatible chars will be replaced with a ?
 
-if __name__ == "__main__":
+def check_for_updates():
     #Check for updates, doing this outside of the main program so it only checks once per load; instead of every 60 seconds.
     JF_Status_github = requests.get("https://api.github.com/repos/AdamWHY2K/Rainmeter_Jellyfin_Status/releases")
-    current_version = "1.0.3"
+    current_version = "1.0.4"
     try:
         latest_version = JF_Status_github.json()[0]["tag_name"][1:]
         changelog = JF_Status_github.json()[0]["body"]
@@ -106,6 +106,17 @@ if __name__ == "__main__":
     else:
         pass #User has latest version installed
 
+def check_for_multiple_processes():
+    count_processes = 0
+    for i in WMI().Win32_Process(name="Jellyfin_Status.exe"):
+        count_processes += 1
+    if count_processes > 2:
+        logging.debug("Exiting due to program already running.")
+        raise SystemExit
+
+if __name__ == "__main__":
+    check_for_multiple_processes()
+    check_for_updates()
     while WMI().Win32_Process(name="Rainmeter.exe"): #While the Rainmeter process exists
         try:
             myApp = App(sys.argv[1], sys.argv[2])
