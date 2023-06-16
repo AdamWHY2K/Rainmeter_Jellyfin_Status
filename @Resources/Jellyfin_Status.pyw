@@ -9,14 +9,14 @@ import webbrowser
 
 
 class User():
-    def __init__(self, UserId, UserName, CurrentPlaying, Client, Transcoding, RuntimeTicks, PositionTicks, IsPaused, DeviceName, NumberOfSessions):
+    def __init__(self, UserId, UserName, CurrentPlaying, Client, Transcoding, RuntimeTicks, PositionTicks, IsPaused, DeviceName):
         self.id = UserId
         self.name = "<name>" + UserName + "<name>"
         self.client = "<client>" + Client + "<client>"
         self.device_name = "<device_name>" + DeviceName + "<device_name>"
         self.total_time = RuntimeTicks
         self.current_time = PositionTicks
-        self.number_of_sessions = "<number_of_sessions>" + str(NumberOfSessions) + "<number_of_sessions>"
+
         if CurrentPlaying != None:
             self.playing = "<playing>" + CurrentPlaying + "<playing>"
             if Transcoding == "Transcode":
@@ -43,7 +43,7 @@ class User():
             self.percentage_done = "<percentage_done>0<percentage_done>"
             self.play_status = "<play_status>[X]<play_status>"
 
-        self.output = self.name + self.playing + self.client + self.transcode + self.minutes_left + self.alt_minutes_left + self.percentage_done + self.play_status + self.device_name + self.number_of_sessions + "JFS_EOL_SIG"
+        self.output = self.name + self.playing + self.client + self.transcode + self.minutes_left + self.alt_minutes_left + self.percentage_done + self.play_status + self.device_name + "JFS_EOL_SIG"
 
 class App():
     def __init__(self, ip, api) -> None:
@@ -58,32 +58,57 @@ class App():
         self.api = api
         self.sessions = []
         self.users = {}
+        self.number_of_sessions = ""
 
     def connect(self):
-        url = "http://" + self.ip + "/Sessions"
-        key = {"api_key": self.api}
-        return requests.get(url, key).json()
+        try:
+            logging.info("Connecting to server")
+            url = "http://" + self.ip + "/Sessions"
+            key = {"api_key": self.api}
+            server = requests.get(url, key).json()
+            return server
+        except requests.exceptions.ConnectionError:
+            logging.error("\t\t\t Can't connect to server @ " + url)
+            logging.info("Retrying in 5 minutes.")
+            sleep(300)
+            self.connect()
 
     def get_sessions(self):
-        for i in self.connect():
-            self.sessions.append(i)
+        try:
+            for i in self.connect():
+                self.sessions.append(i)
+        except TypeError:
+            pass
             
     def create_users(self):
+        logging.info("Creating users")
         for i in self.sessions:
             try:
-                self.users[i["UserId"]] = User(i["UserId"], i["UserName"], re.split("([^\/\\\]+)$", i["NowPlayingItem"]["Path"])[1], i["Client"], i["PlayState"]["PlayMethod"], i["NowPlayingItem"]["RunTimeTicks"], i["PlayState"]["PositionTicks"], i["PlayState"]["IsPaused"], i["DeviceName"],  len(self.sessions))
+                if i["UserId"] in self.users: #Check for duplicate
+                    logging.warning("User: " + i["UserName"] + " has multiple sessions")
+                    if self.users[i["UserId"]].play_status == "<play_status>[X]<play_status>": #If current entry is in an idle state, replace with new entry
+                        self.users[i["UserId"]] = User(i["UserId"], i["UserName"], re.split("([^\/\\\]+)$", i["NowPlayingItem"]["Path"])[1], i["Client"], i["PlayState"]["PlayMethod"], i["NowPlayingItem"]["RunTimeTicks"], i["PlayState"]["PositionTicks"], i["PlayState"]["IsPaused"], i["DeviceName"])
+                    else: #If current entry isn't in an idle state, don't overwrite it
+                        pass
+                else: #Still create an entry if there isn't a duplicate
+                    self.users[i["UserId"]] = User(i["UserId"], i["UserName"], re.split("([^\/\\\]+)$", i["NowPlayingItem"]["Path"])[1], i["Client"], i["PlayState"]["PlayMethod"], i["NowPlayingItem"]["RunTimeTicks"], i["PlayState"]["PositionTicks"], i["PlayState"]["IsPaused"], i["DeviceName"])
             except KeyError:
-                self.users[i["UserId"]] = User(i["UserId"], i["UserName"], None, i["Client"], None, None, None, None, i["DeviceName"], len(self.sessions))
+                self.users[i["UserId"]] = User(i["UserId"], i["UserName"], None, i["Client"], None, None, None, None, i["DeviceName"])
+            if i == self.sessions[-1]: #If last entry in sessions
+                self.number_of_sessions = "<number_of_sessions>" + str(len(self.users)) + "<number_of_sessions>"
+
 
     def write_users(self):
+        logging.info("Writing to py_out.txt")
         with open("py_out.txt", "wb") as f:
+            f.write(self.number_of_sessions.encode("ascii", errors='replace'))
             for i in dict(sorted(self.users.items())): #Sorted so it prints in a consistent order
                 f.write(self.users[i].output.encode("ascii", errors='replace')) #Rainmeter really doesn't like chars that aren't in the basic 128 ascii range, incompatible chars will be replaced with a ?
 
 def check_for_updates():
     #Check for updates, doing this outside of the main program so it only checks once per load; instead of every 60 seconds.
     JF_Status_github = requests.get("https://api.github.com/repos/AdamWHY2K/Rainmeter_Jellyfin_Status/releases")
-    current_version = "1.0.4"
+    current_version = "1.0.5"
     try:
         latest_version = JF_Status_github.json()[0]["tag_name"][1:]
         changelog = JF_Status_github.json()[0]["body"]
