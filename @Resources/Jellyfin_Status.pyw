@@ -70,8 +70,13 @@ class App():
         except requests.exceptions.ConnectionError:
             logging.error("\t\t\t Can't connect to server @ " + url)
             logging.info("Retrying in 5 minutes.")
+            self.write_error()
             sleep(300)
             self.connect()
+
+    def write_error(self):
+        with open("py_out.txt", "wb") as f:
+            f.write("<number_of_sessions>1<number_of_sessions><name>ERROR<name><playing>SERVER OFFLINE<playing><client>NOTHING<client><play_status>[X]<play_status><device_name>NOTHING<device_name>JFS_EOL_SIG".encode("ascii", errors='replace'))
 
     def get_sessions(self):
         try:
