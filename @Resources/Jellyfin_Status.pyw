@@ -73,6 +73,13 @@ class App():
             self.write_error()
             sleep(300)
             self.connect()
+        except ValueError:
+            logging.error("\t\t\t JSON recieved from the API is invalid.")
+            logging.info("Retrying in 5 minutes.")
+            self.write_error()
+            sleep(300)
+            self.connect()
+
 
     def write_error(self):
         with open("py_out.txt", "wb") as f:
