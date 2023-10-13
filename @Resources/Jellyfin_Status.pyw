@@ -108,7 +108,7 @@ class App():
 def check_for_updates():
     #Check for updates, doing this outside of the main program so it only checks once per load; instead of every 60 seconds.
     JF_Status_github = requests.get("https://api.github.com/repos/AdamWHY2K/Rainmeter_Jellyfin_Status/releases")
-    current_version = "1.0.5"
+    current_version = "1.0.6"
     try:
         latest_version = JF_Status_github.json()[0]["tag_name"][1:]
         changelog = JF_Status_github.json()[0]["body"]
