@@ -6,6 +6,7 @@ from time import sleep
 from wmi import WMI
 from pymsgbox import confirm
 import webbrowser
+import updater
 
 
 class User():
@@ -64,8 +65,8 @@ class App():
         try:
             logging.info("Connecting to server")
             url = "http://" + self.ip + "/Sessions"
-            key = {"api_key": self.api}
-            server = requests.get(url, key).json()
+            params = {"api_key": self.api, "&activeWithinSeconds": "600"}
+            server = requests.get(url, params).json()
             return server
         except requests.exceptions.ConnectionError:
             logging.error("\t\t\t Can't connect to server @ " + url)
@@ -117,32 +118,6 @@ class App():
             for i in dict(sorted(self.users.items())): #Sorted so it prints in a consistent order
                 f.write(self.users[i].output.encode("ascii", errors='replace')) #Rainmeter really doesn't like chars that aren't in the basic 128 ascii range, incompatible chars will be replaced with a ?
 
-def check_for_updates():
-    #Check for updates, doing this outside of the main program so it only checks once per load; instead of every 60 seconds.
-    JF_Status_github = requests.get("https://api.github.com/repos/AdamWHY2K/Rainmeter_Jellyfin_Status/releases")
-    current_version = "1.0.6"
-    try:
-        latest_version = JF_Status_github.json()[0]["tag_name"][1:]
-        changelog = JF_Status_github.json()[0]["body"]
-        download_link = JF_Status_github.json()[0]["assets"][0]["browser_download_url"]
-    except KeyError:
-        latest_version = "0"
-        changelog = "Unable to find changelog"
-        download_link = "https://github.com/AdamWHY2K/Rainmeter_Jellyfin_Status"
-    
-    if current_version < latest_version:
-            if confirm(
-            f"\tCurrent version: {current_version}\n\t Latest version: {latest_version}\n\n{changelog}\n\nDownload now?",
-            "Jellyfin Status - Update available",
-            buttons=["OK", "Cancel"]) == "OK":
-                webbrowser.open_new_tab(download_link) #Open download link in user's default browser
-                logging.debug("Downloading update")
-                raise SystemExit
-            else:
-                pass #Skip update this time, will ask again next time skin is refreshed or Rainmeter starts
-    else:
-        pass #User has latest version installed
-
 def check_for_multiple_processes():
     count_processes = 0
     for i in WMI().Win32_Process(name="Jellyfin_Status.exe"):
@@ -153,7 +128,7 @@ def check_for_multiple_processes():
 
 if __name__ == "__main__":
     check_for_multiple_processes()
-    check_for_updates()
+    updater.check_for_updates("Jellyfin_Status", "https://api.github.com/repos/AdamWHY2K/Rainmeter_Jellyfin_Status/releases", "1.0.7")
     while WMI().Win32_Process(name="Rainmeter.exe"): #While the Rainmeter process exists
         try:
             myApp = App(sys.argv[1], sys.argv[2])
