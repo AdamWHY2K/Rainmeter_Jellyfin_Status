@@ -65,7 +65,7 @@ class App():
         try:
             logging.info("Connecting to server")
             url = "http://" + self.ip + "/Sessions"
-            params = {"api_key": self.api, "&activeWithinSeconds": "600"}
+            params = {"api_key": self.api, "activeWithinSeconds": "3600"}
             server = requests.get(url, params).json()
             return server
         except requests.exceptions.ConnectionError:
